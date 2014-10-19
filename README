@@ -1,0 +1,3 @@
+
+
+NOTE: if you want to call in on server (without GUI) use -Djava.awt.headless = true;

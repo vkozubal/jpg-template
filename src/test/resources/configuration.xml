@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<config>
+    <table rowCount="7" cellHeight="36">
+        <columns name="NUMBER_COLUMN">
+            <location x="368" y="162"/>
+        </columns>
+        <columns name="TOTAL_COLUMN">
+            <location x="530" y="162"/>
+        </columns>
+    </table>
+
+    <labels>
+        <entry key="TOTAL_VALUE" x="416" y="436"/>
+        <entry key="DATE_VALUE" x="29" y="145"/>
+        <entry key="TIME_VALUE" x="142" y="145"/>
+        <entry key="CASE_NUMBER_VALUE" x="55" y="185"/>
+        <entry key="CLIENT_NAME_VALUE" x="40" y="259"/>
+        <entry key="AGENT_VALUE" x="40" y="220"/>
+        <entry key="CLIENT_NUMBER_VALUE" x="190" y="259"/>
+        <entry key="NOM_VALUE" x="40" y="300"/>
+    </labels>
+</config>
