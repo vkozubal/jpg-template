@@ -2,22 +2,26 @@ package nl.lincsafe.bsc;
 
 import nl.lincsafe.bsc.configuration.AbstractConfig;
 import nl.lincsafe.bsc.configuration.Config;
-import nl.lincsafe.bsc.objects.Bill;
-import nl.lincsafe.bsc.objects.BillCounterObject;
+import nl.lincsafe.bsc.model.Bill;
+import nl.lincsafe.bsc.model.BillCounterObject;
+import nl.lincsafe.bsc.model.CustomerDetails;
+import nl.lincsafe.bsc.printing.PrinterSerialPort;
+import nl.lincsafe.bsc.printing.ReportGenerator;
+import nl.lincsafe.bsc.printing.ReportImageWriter;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import javax.imageio.ImageIO;
-import javax.imageio.stream.FileImageOutputStream;
 import javax.xml.bind.JAXBException;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.util.*;
 
-public class MainTest {
+public class MainTest extends BaseTest {
+    public static final String JPG_TEMPLATE_PATH = "/unnamed.jpg";
 
     @Test
     public void marshalingTest() throws JAXBException, IOException {
@@ -40,40 +44,98 @@ public class MainTest {
 
     @Test
     public void writeTable() throws IOException, JAXBException, URISyntaxException {
-        Config config = getConfig("/configuration.xml");
+        Config config = Util.getConfig("/configuration.xml");
 
         BillCounterObject billCounter = new BillCounterObject(1);
         billCounter.setBills(getBills());
-        BufferedImage image = Util.getBufferedImage(Constants.JPG_TEMPLATE);
-        populateTable(image, billCounter, config);
+        BufferedImage image = Util.getBufferedImage(JPG_TEMPLATE_PATH);
+        ReportGenerator.populateTable(image, billCounter, config);
 
-        File w = new File("test1-unnamed.bmp");
-        System.out.println(w.getAbsolutePath());
-        FileImageOutputStream stream = new FileImageOutputStream(w);
-
-        Iterator iterator = ImageIO.getImageWritersByFormatName("bmp");
-        javax.imageio.ImageWriter writer = (javax.imageio.ImageWriter) iterator.next();
-        writer.setOutput(stream);
-        Util.writeImageToFile(image, writer);
+        File w = writeToFile(image, "test1-unnamed.bmp");
         Assert.assertTrue(w.exists());
+
+        // comment this line to see result
         w.deleteOnExit();
     }
 
     @Test
     public void writeDataMap() throws IOException, JAXBException, URISyntaxException {
-        BufferedImage image = Util.getBufferedImage(Constants.JPG_TEMPLATE);
-        ImageWriter.populateFromMap(image, getDataMap(), getConfig("/configuration.xml"));
-
-        File w = new File("test-unnamed.bmp");
-        FileImageOutputStream stream = new FileImageOutputStream(w);
-
-        Iterator iterator = ImageIO.getImageWritersByFormatName("bmp");
-        javax.imageio.ImageWriter writer = (javax.imageio.ImageWriter) iterator.next();
-        writer.setOutput(stream);
-        Util.writeImageToFile(image, writer);
+        BufferedImage image = Util.getBufferedImage(JPG_TEMPLATE_PATH);
+        ReportImageWriter.populateFromMap(image, getDataMap(), Util.getConfig("/configuration.xml"));
+        File w = writeToFile(image, "test-unnamed.bmp");
         Assert.assertTrue(w.exists());
+
+        // comment this line to see result
         w.deleteOnExit();
     }
+
+    @Test
+    public void writeReportTest() throws IOException {
+        BufferedImage filledReport = ReportGenerator.fillReport(getBillCounter(), getCustomerDetails());
+        File w = writeToFile(filledReport, "final-result.bmp");
+        Assert.assertTrue(w.exists());
+
+        // comment this line to see result
+        w.deleteOnExit();
+    }
+
+    /**
+     * You need a loopback on specified ports to test PrinterSerialPort and root privileges
+     * see README file
+     */
+    @Test
+    public void loopbackTest() throws IOException, JAXBException, URISyntaxException {
+
+        try (PrinterSerialPort loopBackIn = new PrinterSerialPort()) {
+            // Open serial port
+            loopBackIn.connect("/dev/ttyS90");
+            // Register the serial event handler
+            byte[] bytesData = getDataForTransfer();
+
+            InputStream inStream = loopBackIn.getInputStream();
+
+            PrinterSerialPort.SerialEventHandler serialEventHandler =
+                    new PrinterSerialPort.SerialEventHandler(inStream, bytesData.length);
+            loopBackIn.addDataAvailableEventHandler(serialEventHandler);
+
+            try (PrinterSerialPort loopBackOut = new PrinterSerialPort()) {
+                // Open serial port
+                loopBackOut.connect("/dev/ttyS91");
+                // Send the testing string
+                OutputStream outStream =
+                        loopBackOut.getOutputStream();
+                outStream.write(bytesData);
+            }
+            waitAndCheckResult(bytesData, serialEventHandler);
+        }
+    }
+
+    private void waitAndCheckResult(byte[] expectedData, PrinterSerialPort.SerialEventHandler serialEventHandler) {
+        // Wait until all the data is received
+        long elapsedTime, startTime = System.currentTimeMillis();
+        // Timeout = 1s
+        final int TIMEOUT_VALUE = 10000;
+        do {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {
+            }
+            elapsedTime = System.currentTimeMillis() - startTime;
+        } while ((elapsedTime < TIMEOUT_VALUE) &&
+                (!serialEventHandler.isBufferFull()));
+
+        // Check the data if not TIMEOUT
+        Assert.assertTrue(elapsedTime < TIMEOUT_VALUE, "Test failed due to timeout");
+        Assert.assertEquals(expectedData, serialEventHandler.getReadBuffer());
+    }
+
+    private byte[] getDataForTransfer() throws URISyntaxException, JAXBException, IOException {
+        BufferedImage image = Util.getBufferedImage(JPG_TEMPLATE_PATH);
+        ReportImageWriter.populateFromMap(image, getDataMap(), Util.getConfig("/configuration.xml"));
+        return ReportGenerator.imageToByArray(image);
+    }
+
+//    *********************** Test Data
 
     private static Map<String, String> getDataMap() {
         Map<String, String> dataMap = new HashMap<>();
@@ -88,35 +150,11 @@ public class MainTest {
         return dataMap;
     }
 
-
-    private void populateTable(BufferedImage image, BillCounterObject billCounter, Config config) {
-        List<String> numberColumnData = new ArrayList<>();
-        List<String> totalColumnData = new ArrayList<>();
-
-        for (Bill bill : billCounter.getBillsList()) {
-            numberColumnData.add(String.valueOf(bill.getBillAmount()));
-            totalColumnData.add(String.valueOf(bill.getTotalValue()));
-        }
-        Map<String, List<String>> columnMap = new HashMap<>();
-        columnMap.put(Constants.ColumnNames.NUMBER_COLUMN, numberColumnData);
-        columnMap.put(Constants.ColumnNames.TOTAL_COLUMN, totalColumnData);
-
-        ImageWriter.populateTableColumn(image, columnMap, config);
-    }
-
-
-    private Config getConfig(String fileName) throws URISyntaxException, FileNotFoundException, JAXBException {
-        File file = new File(getClass().getResource(fileName).toURI());
-        String xmlConfig = new Scanner(file).useDelimiter("\\Z").next();
-        System.out.println(xmlConfig);
-        return AbstractConfig.unmarshalFromString(xmlConfig);
-    }
-
-    public static List<Bill> getBills() {
+    private static List<Bill> getBills() {
         int[] billValueArray = {5, 10, 20, 50, 100, 200, 500};
         int[] billAmountArray = {555555, 101010, 202020, 505050, 100100, 200200, 500500};
 
-        List<Bill> result = new ArrayList<Bill>();
+        List<Bill> result = new ArrayList<>();
         for (int i = 0; i < billValueArray.length; i++) {
             Bill bill = new Bill(billValueArray[i], "");
             for (int j = 0; j < billAmountArray[i]; j++) {
@@ -125,5 +163,22 @@ public class MainTest {
             result.add(bill);
         }
         return result;
+    }
+
+    private BillCounterObject getBillCounter() {
+        BillCounterObject billCounter = new BillCounterObject(124235);
+        billCounter.setBills(getBills());
+        return billCounter;
+    }
+
+    private CustomerDetails getCustomerDetails() {
+        CustomerDetails details = new CustomerDetails();
+        details.setCaseNumber(971909723L);
+        details.setDate(Calendar.getInstance());
+        details.setClientName("Client Name");
+        details.setAgent("Agent");
+        details.setClientNumber(984245L);
+        details.setNom("Nom");
+        return details;
     }
 }

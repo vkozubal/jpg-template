@@ -1,19 +1,16 @@
-package nl.lincsafe.bsc;
+package nl.lincsafe.bsc.printing;
 
 import nl.lincsafe.bsc.configuration.Config;
-import nl.lincsafe.bsc.objects.Bill;
-import nl.lincsafe.bsc.objects.BillCounterObject;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class ImageWriter {
+public class ReportImageWriter {
 
     /**
-     * Inserts data from {@code dataList} into table column
+     * Inserts data from {@code dataList} into table column in image
      *
      * @param image    image to write into
      * @param dataList String values to be drawn
@@ -26,7 +23,7 @@ public class ImageWriter {
             Config.Column column = config.getColumn(entry.getKey());
             if (column != null) {
                 for (int i = 0, current = column.getLocation().getY(); i < config.getRowCount(); i++) {
-                    write(image, entry.getValue().get(i), column.getLocation().getX(), current);
+                    write(image, entry.getValue().get(i), column.getLocation().getX(), current, config);
                     current += cellHeight;
                 }
             }
@@ -44,7 +41,7 @@ public class ImageWriter {
         for (Map.Entry<String, String> entry : dataMap.entrySet()) {
             Config.Point location = config.getPosition(entry.getKey());
             if (location != null) {
-                write(image, entry.getValue(), location.getX(), location.getY());
+                write(image, entry.getValue(), location.getX(), location.getY(), config);
             }
         }
     }
@@ -55,14 +52,14 @@ public class ImageWriter {
      * @param x     the <i>x</i> coordinate.
      * @param y     the <i>y</i> coordinate.
      */
-    private static void write(BufferedImage image, String value, int x, int y) {
+    private static void write(BufferedImage image, String value, int x, int y, Config config) {
         Graphics g = image.getGraphics();
         g.setColor(Color.BLACK);
-        g.setFont(g.getFont().deriveFont(14f));
+        g.setFont(g.getFont().deriveFont(config.getFontSize()));
         g.drawString(value, x, y);
-        g.translate(712, 0);
+        // duplicate text for second half of document
+        g.translate(config.getHalfPageWidth(), 0);
         g.drawString(value, x, y);
         g.dispose();
-        System.out.println("write " + value + " to (" + x + ", " + y + ")");
     }
 }

@@ -11,15 +11,25 @@ import java.util.Map;
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.NONE)
 public class Config extends AbstractConfig {
-
     public Config() {
         table = new Table();
     }
 
+    /**
+     * specifies the size of the font
+     */
+    @XmlAttribute
+    private float fontSize;
+
+    /**
+     * specifies half width of the document
+     */
+    @XmlAttribute(name = "half-page-width")
+    private int halfPageWidth;
+
     @XmlElement
     private Table table;
 
-    // column name mapped to y cartesian coordinate
     @XmlJavaTypeAdapter(MapAdapter.class)
     private Map<String, Point> labels;
 
@@ -37,12 +47,11 @@ public class Config extends AbstractConfig {
     }
 
     public static class Column {
-
         public Column() {
         }
 
         public Column(int x, int y, String name) {
-            this.location = new Point(x,y);
+            this.location = new Point(x, y);
             this.name = name;
         }
 
@@ -57,21 +66,9 @@ public class Config extends AbstractConfig {
         }
     }
 
-    public static class MapEntry {
-        @XmlAttribute
-        private String key;
-
-        @XmlAttribute
-        private Integer x;
-
-        @XmlAttribute
-        private Integer y;
-    }
-
     // cartesian coordinate
     @XmlAccessorType(XmlAccessType.NONE)
     public static final class Point {
-
         //        no-arg constructor for Jaxb unmarshaller
         public Point() {
         }
@@ -96,6 +93,20 @@ public class Config extends AbstractConfig {
         }
     }
 
+    // additional class for Map Map<String, Point>
+    public static class MapEntry {
+
+        @XmlAttribute
+        private String key;
+        @XmlAttribute
+        private Integer x;
+
+        @XmlAttribute
+        private Integer y;
+
+    }
+
+    // additional class for Map Map<String, Point>
     public static class PositionMapping {
         public PositionMapping() {
         }
@@ -103,6 +114,7 @@ public class Config extends AbstractConfig {
         public List<MapEntry> entry = new ArrayList<>();
     }
 
+    // additional class for Map Map<String, Point>
     public static final class MapAdapter extends XmlAdapter<PositionMapping, Map<String, Point>> {
 
         @Override
@@ -148,13 +160,13 @@ public class Config extends AbstractConfig {
         this.table.columns.add(column);
     }
 
-    public List<Column> getColumns(){
+    public List<Column> getColumns() {
         return table.columns;
     }
 
-    public Column getColumn(String key){
-        for(Column column: getColumns()){
-            if (column.name.equals(key)){
+    public Column getColumn(String key) {
+        for (Column column : getColumns()) {
+            if (column.name.equals(key)) {
                 return column;
             }
         }
@@ -171,5 +183,13 @@ public class Config extends AbstractConfig {
 
     public Map<String, Point> getLabels() {
         return labels;
+    }
+
+    public float getFontSize() {
+        return fontSize;
+    }
+
+    public int getHalfPageWidth() {
+        return halfPageWidth;
     }
 }

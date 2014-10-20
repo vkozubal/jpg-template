@@ -1,13 +1,12 @@
 package nl.lincsafe.bsc;
 
 public final class Constants {
-
-    public static final String JPG_TEMPLATE = "/unnamed.jpg";
+    public static final String JPG = "jpg";
+    public static final String BI_RGB = "BI_RGB";
 
     private Constants() {
     }
 
-    // TODO consider making enum
     public static class ColumnNames {
         public static final String NUMBER_COLUMN = "NUMBER_COLUMN";
         public static final String TOTAL_COLUMN = "TOTAL_COLUMN";

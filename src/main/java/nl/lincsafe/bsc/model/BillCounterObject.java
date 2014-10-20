@@ -1,11 +1,10 @@
-package nl.lincsafe.bsc.objects;
+package nl.lincsafe.bsc.model;
+
+import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
-import org.apache.log4j.Logger;
-import org.ini4j.Ini;
 
 public class BillCounterObject {
 	static Logger logger = Logger.getLogger(BillCounterObject.class);
@@ -14,7 +13,7 @@ public class BillCounterObject {
 	private int CounterID;
 	private String FilePath;
 	// private File File;
-	protected Ini IniFile;
+//	protected Ini IniFile;
 
 	public BillCounterObject(int counterID) {
 		Bills = new ArrayList<Bill>();
@@ -30,7 +29,7 @@ public class BillCounterObject {
 		if (!iniFile.exists()) {
 			iniFile.createNewFile();
 		}
-		IniFile = new Ini(iniFile);
+//		IniFile = new Ini(iniFile);
 		loadFromIni();
 	}
 
@@ -67,14 +66,14 @@ public class BillCounterObject {
 
 	public void writeToIni() throws IOException {
 		for (Bill bill : Bills) {
-			IniFile.put("BILLS", Integer.toString(bill.getBillValue()), Integer.toString(bill.getBillAmount()));
+//			IniFile.put("BILLS", Integer.toString(bill.getBillValue()), Integer.toString(bill.getBillAmount()));
 		}
-		IniFile.store();
+//		IniFile.store();
 	}
 
 	public void loadFromIni() throws IOException {
 		for (Bill bill : Bills) {
-			bill.setBillAmount(tryParse(IniFile.get("BILLS", Integer.toString(bill.getBillValue()))));
+//			bill.setBillAmount(tryParse(IniFile.get("BILLS", Integer.toString(bill.getBillValue()))));
 		}
 		writeToIni(); // write it back to be sure.
 	}

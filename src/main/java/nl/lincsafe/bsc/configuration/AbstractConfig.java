@@ -9,6 +9,9 @@ import javax.xml.bind.annotation.XmlTransient;
 import java.io.StringReader;
 import java.io.StringWriter;
 
+/**
+ * Handle marshaling/umarshaling of its subclasses
+ */
 @XmlSeeAlso({Config.class})
 public class AbstractConfig {
 

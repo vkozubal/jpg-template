@@ -1,4 +1,4 @@
-package nl.lincsafe.bsc.objects;
+package nl.lincsafe.bsc.model;
 
 public class Bill {
 	private int billValue;
